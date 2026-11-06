@@ -81,7 +81,7 @@ void Arm::disable()
 bool Arm::setReference(const Reference& reference)
 {
     if (!withinLimits(reference.q)) { return false; }
-    if (trajRunning()) { trajAbort(); }
+    // if (trajRunning()) { trajAbort(); }
     reference_ = reference;
     return true;
 }
@@ -167,7 +167,9 @@ void Arm::trajectoryPlanner()
         //轨迹完成
         float q[2];
         trajGetQueueCycle(q);
-        trajStart(q[0],q[1],traj_std_duration_s_);
+        if(!trajStart(q[0],q[1],traj_std_duration_s_)){
+            trajAbort();
+        }
         return;
     }
     //如果还在跑，取样

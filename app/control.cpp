@@ -175,13 +175,7 @@ void robotControl(void) {
         //还没开始过
         arm.trajQueueFill(route,4);
         arm.setTrajStatus(Arm::TrajStatus::Preparing);
-        arm.trajStart(route[0][0],route[0][1],2);
-      }else if(stat == Arm::TrajStatus::Prepared)
-      {
-        //可以下一个路径
-        float q[2];
-        arm.trajGetQueueCycle(q);
-        arm.trajStart(q[0],q[1],1);
+        arm.trajStart(route[3][0],route[3][1],2);
       }
 
     }
