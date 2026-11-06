@@ -115,6 +115,7 @@ void robotPowerStateFSM(bool stop_flag) {
       robot_state = STOP;
     } else if (robot_init_flag) {
       // 初始化/复位完成
+      allMotorsOn();
       robot_state = WORKING;
     }
   } else if (robot_state == WORKING) {
@@ -140,8 +141,58 @@ bool robotStartup(void) {
   return flag;
 }
 
+const float chnMax = 660;
+const float route[4][2] = {
+  {0.100f, -0.100f},   // B
+  {-0.100f, -0.100f},  // C
+  {-0.100f, 0.100f},   // D
+  {0.100f, 0.100f}    // A
+
+};
 // 机器人控制
 void robotControl(void) {
+  if (rc.switch_.l == decltype(rc)::UP && rc.switch_.r == decltype(rc)::UP) {
+    // 遥控器挡位左上右上：双关节手动控制
+    if (arm.enable())
+    {
+      //todo
+      float speed[2] = {};
+      speed[0] = rc.channel_.r_row/chnMax;
+      speed[1] = rc.channel_.r_col/chnMax;
+      arm.addJointReference(speed[0], speed[1], 0.001f);
+    }
+  }else if (rc.switch_.l == decltype(rc)::MID && rc.switch_.r == decltype(rc)::MID) {
+    // 左中右中	保持失能，将伸直姿态标定为零位
+    arm.disable();
+    arm.calibrate(0.0f,0.0f);
+  } else if (rc.switch_.l == decltype(rc)::MID && rc.switch_.r == decltype(rc)::UP) {
+    // 左中右上	执行一次预备动作和正方形
+    if (arm.enable())
+    {
+      Arm::TrajStatus stat = arm.trajStatus();
+      if(stat == Arm::TrajStatus::Disabled)
+      {
+        //还没开始过
+        arm.trajQueueFill(route,4);
+        arm.setTrajStatus(Arm::TrajStatus::Preparing);
+        arm.trajStart(route[0][0],route[0][1],2);
+      }else if(stat == Arm::TrajStatus::Prepared)
+      {
+        //可以下一个路径
+        float q[2];
+        arm.trajGetQueueCycle(q);
+        arm.trajStart(q[0],q[1],1);
+      }
+
+    }
+  } else if (rc.switch_.r == decltype(rc)::DOWN) {
+    // 右下	停机、取消动作并失能
+    arm.disable();
+  } else
+  {
+    arm.trajAbort();
+    //其余挡位	保持当前位置目标
+  }
 }
 
 // 板载LED指示灯效果

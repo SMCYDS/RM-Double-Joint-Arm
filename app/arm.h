@@ -7,6 +7,9 @@
 
 #include "base/motor/motor.h"
 #include "arm_trajectory.h"
+#include <array>
+#include <cstddef>
+#include <queue>
 
 // 双关节机械臂
 class Arm {
@@ -32,6 +35,7 @@ class Arm {
   };
 
   enum class Mode { Disabled, Joint };
+  enum class TrajStatus { Disabled, Preparing, Prepared };//todo
 
   Arm(Motor& joint0, Motor& joint1, const Limits& limits,
       const Feedforward& feedforward);
@@ -58,16 +62,50 @@ class Arm {
   void handle();
 
   const State& state() const { return state_; }
+  const TrajStatus& trajStatus() const { return joint_trajectory_flag_; }
+  void setTrajStatus(const TrajStatus& t) { joint_trajectory_flag_ = t; }
   const Reference& reference() const { return reference_; }
   Mode mode() const { return mode_; }
   bool calibrated() const { return calibrated_; }
+
+  bool trajGetQueue(float pos[2]) {
+    if (trajectory_queue_.empty())
+    {
+      return false;
+      trajAbort();
+    }
+    pos[0] = trajectory_queue_.front()[0];
+    pos[1] = trajectory_queue_.front()[1];
+    trajectory_queue_.pop();
+    return true;
+  }
+  bool trajGetQueueCycle(float pos[2]) {
+    if (trajectory_queue_.empty()) return false;
+    const auto point = trajectory_queue_.front();
+    trajectory_queue_.pop();
+    trajectory_queue_.push(point);
+    pos[0] = point[0];
+    pos[1] = point[1];
+    return true;
+  }
+  bool trajQueueClear() {
+    while (!trajectory_queue_.empty()) trajectory_queue_.pop();
+    return true;
+  }
+
+  bool trajQueueFill(const float dat[][2],int8_t len) {
+    trajQueueClear();
+    for (std::size_t i = 0; i < len; ++i) {
+      trajectory_queue_.push({dat[i][0], dat[i][1]});
+    }
+    return true;
+  }
 
  private:
   enum class TrajectoryType { None, Cartesian, Joint };
   bool feedbackReady();
   bool trajectoryReady();
   bool withinLimits(const float q[2]) const;
-  bool applyReference(const Reference& reference);
   void updateFeedback();
   void trajectoryPlanner();
   void writeMotorCommands();
@@ -85,9 +123,17 @@ class Arm {
   bool trajectory_finished_{false};
   uint32_t trajectory_start_tick_{};
   int trajectory_elbow_{1};
+
+  const float traj_std_duration_s_ = 1;
+
   float joint_trajectory_start_[2]{};
   float joint_trajectory_end_[2]{};
   float joint_trajectory_duration_{};
+  TrajStatus joint_trajectory_flag_{TrajStatus::Disabled};
+
+  std::queue<std::array<float, 2>> trajectory_queue_{};
+  //轨迹状态机
+
 };
 
 #endif  // DOUBLE_JOINTED_ROBOTIC_ARM_ARM_H
