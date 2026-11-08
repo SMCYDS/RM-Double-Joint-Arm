@@ -4,33 +4,36 @@
 
 #define M_PI 3.14159265359
 
-float elbowCos(float radius_squared) {
-  // cos q1 = (r^2 - l0^2 - l1^2) / 2 l0 l1
-  return (radius_squared - ArmKinematics::l0 * ArmKinematics::l0 -
-          ArmKinematics::l1 * ArmKinematics::l1) /
-         (2.f * ArmKinematics::l0 * ArmKinematics::l1);
-}
+//motion verification passed
 bool regularRadius(float radius_squared) {
-  const float c = elbowCos(radius_squared);
-  return 1.f - c * c > ArmKinematics::min_sin_q1 * ArmKinematics::min_sin_q1;
+  const float c = (radius_squared - ArmKinematics::l0 * ArmKinematics::l0 -
+          ArmKinematics::l1 * ArmKinematics::l1) /
+         (2.f * ArmKinematics::l0 * ArmKinematics::l1);// 余弦定理解肘关节角度
+  return 1.f - c * c >= ArmKinematics::min_sin_q1 * ArmKinematics::min_sin_q1;
 }
 float unwrap(float angle, float previous) {
+  //依据上一角度解算到合适的角度
   return angle + M_PI*2 * std::round((previous - angle) / M_PI/2);
 }
 
 
-//正运动学     done
+//正运动学
 CartesianReference ArmKinematics::forward(const float q[2]) {
   CartesianReference p2;
   p2.x=l0*cosf(q[0])+l1*cosf(q[0]+q[1]), p2.y=l0*sinf(q[0])+l1*sinf(q[0]+q[1]);
   return p2;
 }
 
-//逆运动学     done
+//逆运动学
+float err_q[4]={-0.999f,-0,0,0};
 bool ArmKinematics::inverse(const CartesianReference& p,
                       const float previous_q[2], int elbow, float q[2]) {
+
   float pl2 = p.x*p.x+p.y*p.y;
-  if (!(fabs(elbow)==1)||!regularRadius(pl2))return false;//右肘是1
+  if (!(fabs(elbow)==1)||!regularRadius(pl2)) {
+    if(err_q[0] == -0.999f){err_q[0] = p.x, err_q[1] = p.y, err_q[2] = previous_q[0],err_q[3] = previous_q[1];}
+    return false;//右肘是1
+  }
 
   float cos_q1 = -(l0*l0+l1*l1-pl2)/(2*l1*l0); // 余弦定理
   q[0] = unwrap(atan2(p.y,p.x)-elbow*acosf((pl2+l0*l0-l1*l1)/(2*sqrt(pl2)*l0)),previous_q[0]);

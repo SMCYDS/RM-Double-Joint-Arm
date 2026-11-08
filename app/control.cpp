@@ -142,14 +142,17 @@ bool robotStartup(void) {
 }
 
 const float chnMax = 660;
-const float route[4][2] = {
-  {0.100f, -0.100f},   // B
-  {-0.100f, -0.100f},  // C
-  {-0.100f, 0.100f},   // D
-  {0.100f, 0.100f}    // A
+const float route[5][2] = {
+  {0.110f, 0.110f},   // A
+  {0.110f, -0.110f},   // B
+  {-0.110f, -0.110f},  // C
+  {-0.110f, 0.110f},   // D
+  {0.110f, 0.110f}    // A
 
 };
 // 机器人控制
+RC::RCSwitchState_e last_l;
+RC::RCSwitchState_e last_r;
 void robotControl(void) {
   if (rc.switch_.l == decltype(rc)::UP && rc.switch_.r == decltype(rc)::UP) {
     // 遥控器挡位左上右上：双关节手动控制
@@ -169,13 +172,12 @@ void robotControl(void) {
     // 左中右上	执行一次预备动作和正方形
     if (arm.enable())
     {
-      Arm::TrajStatus stat = arm.trajStatus();
-      if(stat == Arm::TrajStatus::Disabled)
+      if(!(last_l == rc.switch_.l && last_r == rc.switch_.r))
       {
         //还没开始过
-        arm.trajQueueFill(route,4);
-        arm.setTrajStatus(Arm::TrajStatus::Preparing);
-        arm.trajStart(route[3][0],route[3][1],2);
+        arm.trajQueueFill(route,5);
+        float q[2];arm.trajGetQueue(q);
+        arm.trajStart(q[0],q[1],1);
       }
 
     }
@@ -187,6 +189,8 @@ void robotControl(void) {
     arm.trajAbort();
     //其余挡位	保持当前位置目标
   }
+  last_l = rc.switch_.l;
+  last_r = rc.switch_.r;
 }
 
 // 板载LED指示灯效果

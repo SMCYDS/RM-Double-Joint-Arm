@@ -112,7 +112,8 @@ bool Arm::trajectoryReady()
 
 bool Arm::trajStart(float x_m, float y_m, float duration_s)
 {
-    if(duration_s <= 0.0f||!trajectoryReady()) return false;
+  if(duration_s <= 0.0f) {abort_reason_ = -6;return false;}
+  if(!trajectoryReady()) {abort_reason_ = -5;return false;}
 
     CartesianReference spos, tpos;
     tpos.x = x_m, tpos.y = y_m;
@@ -120,9 +121,10 @@ bool Arm::trajStart(float x_m, float y_m, float duration_s)
     //检查是否可行
     if (!ArmKinematics::lineReachable(spos, tpos))
     {
-        return false;
+      abort_reason_ = -4;
+      return false;
     }
-    if (!trajectory_.start(spos, tpos, duration_s)){return false;}
+    if (!trajectory_.start(spos, tpos, duration_s)){abort_reason_ = -3;return false;}
     //设置状态参数
     trajectory_start_tick_ = HAL_GetTick();
     trajectory_type_ = TrajectoryType::Cartesian;
@@ -147,11 +149,11 @@ void Arm::trajAbort()
     trajectory_.abort();
     trajectory_type_ = TrajectoryType::None;
     joint_trajectory_duration_ = 0;
-    joint_trajectory_flag_ = TrajStatus::Disabled;
     reference_.dq[0] = reference_.dq[1] = 0.0f;
     reference_.ddq[0] = reference_.ddq[1] = 0.0f;
     trajectory_finished_ = false;
 }
+
 
 void Arm::trajectoryPlanner()
 {
@@ -159,26 +161,34 @@ void Arm::trajectoryPlanner()
     float elapsed_s = static_cast<float>(HAL_GetTick() - trajectory_start_tick_) * 0.001f;
     if (elapsed_s>=joint_trajectory_duration_)
     {//结束了
+
         trajAbort();
         trajectory_finished_ = true;
     }
     if (trajectory_finished_)
     {
         //轨迹完成
-        float q[2];
-        trajGetQueueCycle(q);
-        if(!trajStart(q[0],q[1],traj_std_duration_s_)){
+        float next_q[2]={0,0};
+        if(!trajGetQueue(next_q)) {
+          //轨迹走完
+          abort_reason_ = 1;
+          return;
+        };
+
+        if(!trajStart(next_q[0],next_q[1],traj_std_duration_s_)){
+          //发生异常
             trajAbort();
+          abort_reason_ += 20;
         }
         return;
     }
     //如果还在跑，取样
     const CartesianReference point = trajectory_.sample(elapsed_s);
     Reference nextReference;
-    bool res = ArmKinematics::inverse(point, reference_.q, trajectory_elbow_, nextReference.q)&&
-        ArmKinematics::derivatives(point, reference_.q, nextReference.dq, nextReference.ddq)&&
-            setReference(nextReference);
-    if (!res)trajAbort();
+    bool rep1 = ArmKinematics::inverse(point, reference_.q, trajectory_elbow_, nextReference.q);
+    bool rep2 = ArmKinematics::derivatives(point, reference_.q, nextReference.dq, nextReference.ddq);
+    bool rep3 = setReference(nextReference);
+    if (!(rep1&&rep2&&rep3)){trajAbort();}
 }
 
 void Arm::updateFeedback()

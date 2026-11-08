@@ -53,15 +53,23 @@
 // 在线 KF Q 为 deg²、(deg/s)²，R 为 deg²
 const Motor::KFParam_t joint_kf_param(5.f, 6e5f, 1.f);
 const PID J0_spid(2.5,0,0,0,16384,1);
-const PID J0_ppid(100,2.5,7500,0,1800,1);
+const PID J0_ppid(95,2.5,7500,0,1800,1);
+/*
+ * ver qxy
+ * 28 0.5 3000
+ * 6 0 2
+ *
+ * 70 0.5 2500
+ * 3.2 0 0
+ */
 // J0 齿轮传动反向，用负传动比统一关节正方向；同时换算反馈和输出
 Motor J0(Motor::M3508, 4, Motor::POSITION_SPEED,  // type, ratio, method
          J0_ppid,           // ppid
          J0_spid,           // spid
          true, joint_kf_param);  // 启用在线 KF
 
-const PID J1_spid(1.5,0.1,0,0,16384,1);
-const PID J1_ppid( 120,2,2200,200,1900,1);
+const PID J1_spid(2.3,0,3,0,16384,1);
+const PID J1_ppid( 85,0.2,2600,3,1800,1);
 Motor J1(Motor::M3508, -1, Motor::POSITION_SPEED,
          J1_ppid,
          J1_spid,

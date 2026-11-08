@@ -72,7 +72,6 @@ class Arm {
     if (trajectory_queue_.empty())
     {
       return false;
-      trajAbort();
     }
     pos[0] = trajectory_queue_.front()[0];
     pos[1] = trajectory_queue_.front()[1];
@@ -123,8 +122,9 @@ class Arm {
   bool trajectory_finished_{false};
   uint32_t trajectory_start_tick_{};
   int trajectory_elbow_{1};
+  int8_t abort_reason_ = 0;
 
-  const float traj_std_duration_s_ = 1;
+  const float traj_std_duration_s_ = 0.3f;
 
   float joint_trajectory_start_[2]{};
   float joint_trajectory_end_[2]{};
