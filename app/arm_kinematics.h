@@ -11,7 +11,7 @@ struct CartesianReference {
 class ArmKinematics {
  public:
   static constexpr float l0 = 0.100f;//大手笔
-  static constexpr float l1 = 0.100f;//小手笔
+  static constexpr float l1 = 0.102f;//小手笔
   static constexpr float min_sin_q1 = 0.01f;  // 雅可比奇异阈值
   static CartesianReference forward(const float q[2]);
   static bool lineReachable(const CartesianReference& start,

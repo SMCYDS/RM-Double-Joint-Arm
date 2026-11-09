@@ -124,7 +124,7 @@ class Arm {
   int trajectory_elbow_{1};
   int8_t abort_reason_ = 0;
 
-  const float traj_std_duration_s_ = 0.3f;
+  const float traj_std_duration_s_ = 0.8f;
 
   float joint_trajectory_start_[2]{};
   float joint_trajectory_end_[2]{};
