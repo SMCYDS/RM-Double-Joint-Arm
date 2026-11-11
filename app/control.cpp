@@ -90,8 +90,8 @@ void controlLoop(void) {
     robot_init_flag = robotStartup();  // 开机状态判断
   } else if (robot_state == WORKING) {
     robotControl();  // 机器人控制
+    arm.handle();
   }
-  arm.handle();
   boardLedHandle();
 }
 

@@ -213,7 +213,6 @@ void Arm::writeMotorCommands()
 {
     joint0_.method_ = Motor::POSITION_SPEED;
     joint1_.method_ = Motor::POSITION_SPEED;
-    // 加速度前馈系数（动力学未建模，当前为 0）
     joint0_.setAngleSpeed(
         reference_.q[0] * RTD, reference_.dq[0] * RTD,feedforward_.k_acc[0] * reference_.ddq[0]);
     joint1_.setAngleSpeed(
